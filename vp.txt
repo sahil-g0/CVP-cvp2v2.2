@@ -1,0 +1,120 @@
+100000 instrs 
+200000 instrs 
+300000 instrs 
+400000 instrs 
+500000 instrs 
+600000 instrs 
+700000 instrs 
+800000 instrs 
+900000 instrs 
+1000000 instrs 
+1100000 instrs 
+1200000 instrs 
+1300000 instrs 
+1400000 instrs 
+1500000 instrs 
+1600000 instrs 
+1700000 instrs 
+1800000 instrs 
+1900000 instrs 
+2000000 instrs 
+Correct Mem Tracker: 1
+Incorrect Mem Tracker Init: 5065
+Incorrect Mem Tracker Aliasing/SpecOps: 5015
+Incorrect Mem Tracker NoLdOutput: 1585
+STORAGE SIZE: STRIDE (5104 bits) |Value array:  (87552 bits) |VTAGE:  (169362 bits) ||| TOTAL SIZE: 262018 bits
+VP_ENABLE = 1
+VP_PERFECT = 0
+VP_TRACK = ALL
+WINDOW_SIZE = 512
+FETCH_WIDTH = 16
+FETCH_NUM_BRANCH = 16
+FETCH_STOP_AT_INDIRECT = 1
+FETCH_STOP_AT_TAKEN = 1
+FETCH_MODEL_ICACHE = 1
+PERFECT_BRANCH_PRED = 0
+PERFECT_INDIRECT_PRED = 0
+PIPELINE_FILL_LATENCY = 5
+NUM_LDST_LANES = 8
+NUM_ALU_LANES = 16
+MEMORY HIERARCHY CONFIGURATION---------------------
+STRIDE Prefetcher = 1
+PERFECT_CACHE = 0
+WRITE_ALLOCATE = 1
+Within-pipeline factors:
+	AGEN latency = 1 cycle
+	Store Queue (SQ): SQ size = window size, oracle memory disambiguation, store-load forwarding = 1 cycle after store's or load's agen.
+	* Note: A store searches the L1$ at commit. The store is released
+	* from the SQ and window, whether it hits or misses. Store misses
+	* are buffered until the block is allocated and the store is
+	* performed in the L1$. While buffered, conflicting loads get
+	* the store's data as they would from the SQ.
+I$: 128 KB, 8-way set-assoc., 64B block size
+L1$: 64 KB, 8-way set-assoc., 64B block size, 3-cycle search latency
+L2$: 1 MB, 8-way set-assoc., 64B block size, 12-cycle search latency
+L3$: 8 MB, 16-way set-assoc., 128B block size, 60-cycle search latency
+Main Memory: 150-cycle fixed search time
+STORE QUEUE MEASUREMENTS---------------------------
+Number of loads: 11668
+Number of loads that miss in SQ: 11668 (100.00%)
+Number of PFs issued to the memory system 5912
+MEMORY HIERARCHY MEASUREMENTS----------------------
+I$:
+	accesses   = 2243515
+	misses     = 5437
+	miss ratio = 0.24%
+	pf accesses   = 0
+	pf misses     = 0
+	pf miss ratio = -nan%
+L1$:
+	accesses   = 13441
+	misses     = 21
+	miss ratio = 0.16%
+	pf accesses   = 5912
+	pf misses     = 10
+	pf miss ratio = 0.17%
+L2$:
+	accesses   = 5458
+	misses     = 4571
+	miss ratio = 83.75%
+	pf accesses   = 10
+	pf misses     = 10
+	pf miss ratio = 100.00%
+L3$:
+	accesses   = 4571
+	misses     = 4095
+	miss ratio = 89.59%
+	pf accesses   = 10
+	pf misses     = 6
+	pf miss ratio = 60.00%
+BRANCH PREDICTION MEASUREMENTS---------------------
+Type                      n          m     mr  mpki
+All                 2243515        248  0.01%  0.11
+Branch                    1          1 100.00%  0.00
+Jump: Direct              1          0  0.00%  0.00
+Jump: Indirect       144869        247  0.17%  0.11
+Jump: Return              0          0  -nan%  0.00
+Not control         2098644          0  0.00%  0.00
+ILP LIMIT STUDY------------------------------------
+instructions = 2243515
+cycles       = 1144781
+IPC          = 1.960
+Prefetcher------------------------------------------
+Num Trainings :11668
+Num Prefetches generated :5942
+Num Prefetches issued :11199
+Num Prefetches filtered by PF queue :5091
+Num untimely prefetches dropped from PF queue :30
+Num prefetches not issued LDST contention :5287
+Num prefetches not issued stride 0 :240
+CVP STUDY------------------------------------------
+prediction-eligible instructions = 215175
+correct predictions              = 30452 (14.15%)
+incorrect predictions            = 1 (0.00%)
+Other------------------------------------------
+Misclassified LDP to LD + BU: 1
+Misclassified STP to STR (once, total): 1
+Misclassified STP to STR (multiple times, total): 0
+Misclassified STR to STP (once times, total): 0
+Misclassify load vector lane: 9
+ Read 2024917 instrs 
