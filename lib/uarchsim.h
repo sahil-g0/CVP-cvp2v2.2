@@ -54,6 +54,16 @@ struct store_queue_t {
 class uarchsim_t {
    private:
       // Add your class member variables here to facilitate your limit study.
+      //NEW
+      //std::unordered_map<uint64_t, std::pair<uint64_t, uint64_t>> addr_access_counts;
+      uint64_t num_loads_kien, num_stores_kien;
+      
+      struct addr_access_info {
+        uint64_t loads;
+        uint64_t stores;
+        uint64_t pc;
+      };
+      std::unordered_map<uint64_t, addr_access_info> addr_access_counts;
 
       // register timestamps
       uint64_t RF[RFSIZE];
@@ -123,6 +133,7 @@ class uarchsim_t {
       void step(db_t *inst);
       void output();
       PredictionRequest get_prediction_req_for_track(uint64_t cycle, uint64_t seq_no, uint8_t piece, db_t *inst);
+      void load_profile(const char* filename);
 };
 
 #endif

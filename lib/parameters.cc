@@ -23,6 +23,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <inttypes.h>
+#include <cstddef>
 
 bool VP_ENABLE = false;
 bool VP_PERFECT = false;
@@ -64,3 +65,6 @@ uint64_t L3_BLOCKSIZE = 128;
 uint64_t L3_LATENCY = 60;
 
 uint64_t MAIN_MEMORY_LATENCY = 150;
+
+// Kien - Initialization for load store file
+char* LOAD_STORE_RATIO_FILE = NULL;

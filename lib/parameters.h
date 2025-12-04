@@ -73,4 +73,7 @@ extern uint64_t L3_LATENCY;
 
 extern uint64_t MAIN_MEMORY_LATENCY;
 
+// Kien - Load store file
+extern char* LOAD_STORE_RATIO_FILE;
+
 #endif

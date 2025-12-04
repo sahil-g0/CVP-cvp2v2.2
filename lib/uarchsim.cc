@@ -34,6 +34,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "resource_schedule.h"
 #include "uarchsim.h"
 #include "parameters.h"
+#include <cstddef>
 
 std::unordered_map<uint64_t, addr_mode_infer_t> ldst_offsets = {};
 
@@ -76,6 +77,11 @@ uarchsim_t::uarchsim_t():BP(20,16,20,16,64),window(WINDOW_SIZE),
    // stats
    num_load = 0;
    num_load_sqmiss = 0;
+
+   // Kien - Check for load store file
+   if (LOAD_STORE_RATIO_FILE != NULL) {
+      load_profile(LOAD_STORE_RATIO_FILE);
+   }
 }
 
 uarchsim_t::~uarchsim_t() {
@@ -127,6 +133,20 @@ PredictionRequest uarchsim_t::get_prediction_req_for_track(uint64_t cycle, uint6
          assert(false && "Invalid Track\n");
          break;
    }
+   // NEW
+   if (req.is_candidate && (inst->is_load || inst->is_store) && LOAD_STORE_RATIO_FILE != NULL) {
+      if (addr_access_counts.find(inst->addr) != addr_access_counts.end()) {
+         uint64_t loads = addr_access_counts[inst->addr].loads;
+         uint64_t stores = addr_access_counts[inst->addr].stores;
+         
+         // Don't predict if load/store ratio < 1
+         if (stores > 0 && (double)loads / (double)stores < 1.0) {
+            req.is_candidate = false;
+            printf("NO VP ON ADDRESS: %lx\n", inst->addr);
+         }
+      }
+   }
+   
    return req;
 }
 
@@ -447,6 +467,19 @@ void uarchsim_t::step(db_t *inst)
    //
    if (inst->is_load || inst->is_store) {
       if (ldst_lanes) exec_cycle = ldst_lanes->schedule(exec_cycle);
+
+      //NEW
+      uint64_t ADDR = inst->addr;
+      if (addr_access_counts.find(ADDR) == addr_access_counts.end()){
+        addr_access_counts[ADDR] = {0, 0, inst->pc};
+      }
+      if (inst->is_load){
+        addr_access_counts[ADDR].loads++;
+      }
+      else {
+        addr_access_counts[ADDR].stores++;
+        num_loads_kien++;
+      }
    }
    else {
       if (alu_lanes) exec_cycle = alu_lanes->schedule(exec_cycle);
@@ -799,5 +832,33 @@ void uarchsim_t::output() {
    printf("Misclassified STP to STR (once, total): %ld\n", stat_short_store_pair_misclassify);
    printf("Misclassified STP to STR (multiple times, total): %ld\n", stat_long_store_pair_misclassify);
    printf("Misclassified STR to STP (once times, total): %ld\n", stat_misclassified_str_to_stp);
+   printf("total stores: %ld\n", num_loads_kien);
+   FILE* addr_file = fopen("addrs.txt", "w");
+   if (addr_file){
+      for (const auto& entry : addr_access_counts){
+        uint64_t addr = entry.first;
+        uint64_t pc = entry.second.pc;
+        uint64_t loads = entry.second.loads;
+        uint64_t stores = entry.second.stores;
+        fprintf(addr_file, "%lx %lx %ld %ld\n", pc, addr, loads, stores);
+      }
+      fclose(addr_file);
+   }
  
+}
+
+// Kien - Loading the load store file
+void uarchsim_t::load_profile(const char* filename) {
+    FILE* f = fopen(filename, "r");
+    if (!f) {
+        printf("Warning: Could not open load store file %s\n", filename);
+        return;
+    }
+    
+    uint64_t addr, pc, loads, stores;
+    while (fscanf(f, "%lx %lx %ld %ld", &pc, &addr, &loads, &stores) == 4) {
+        addr_access_counts[addr] = {loads, stores, pc};
+    }
+    fclose(f);
+    printf("Loaded %ld address profiles from %s\n", addr_access_counts.size(), filename);
 }

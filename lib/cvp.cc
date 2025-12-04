@@ -243,8 +243,20 @@ int parseargs(int argc, char ** argv) {
            exit(0);
         }
      }
-     else
-     {
+     // Kien - Checks for command that sends load store file
+     else if (!strcmp(argv[i], "-lsfile")) {
+        i++;
+        if (i < argc) {
+            LOAD_STORE_RATIO_FILE = argv[i];
+            printf("KIEN READ LSFILE: %s\n", LOAD_STORE_RATIO_FILE);  // Print the filename to verify
+            i++;  // Then increment
+        }
+        else {
+            printf("Usage: missing load/store ratio file: -lsfile <filename>.\n");
+            exit(0);
+        }
+     }
+     else {
         break;
      }
   }
