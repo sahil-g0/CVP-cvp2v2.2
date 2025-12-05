@@ -34,7 +34,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "resource_schedule.h"
 #include "uarchsim.h"
 #include "parameters.h"
-#include <cstddef>
+//#include <cstddef>
 
 std::unordered_map<uint64_t, addr_mode_infer_t> ldst_offsets = {};
 
@@ -135,13 +135,13 @@ PredictionRequest uarchsim_t::get_prediction_req_for_track(uint64_t cycle, uint6
    }
    // NEW
    if (req.is_candidate && (inst->is_load || inst->is_store) && LOAD_STORE_RATIO_FILE != NULL) {
-      if (addr_access_counts.find(inst->addr) != addr_access_counts.end()) {
-         uint64_t loads = addr_access_counts[inst->addr].loads;
-         uint64_t stores = addr_access_counts[inst->addr].stores;
+      if (addr_access_counts2.find(inst->addr) != addr_access_counts2.end()) {
+         uint64_t loads = addr_access_counts2[inst->addr].loads;
+         uint64_t stores = addr_access_counts2[inst->addr].stores;
          
          // Don't predict if load/store ratio < 1
          if (stores > 0 && (double)loads / (double)stores < 1.0) {
-            req.is_candidate = false;
+            req.is_candidate = 0;
             printf("NO VP ON ADDRESS: %lx\n", inst->addr);
          }
       }
@@ -396,7 +396,12 @@ void uarchsim_t::step(db_t *inst)
       else
       {
          PredictionRequest req = get_prediction_req_for_track(fetch_cycle, seq_no, piece, inst);
-         pred = getPrediction(req);
+         pred = getPrediction(req);\
+         /*
+         if (inst->addr == 0){
+            printf("Eligible: %ld\n",(predictable && pred.speculate && req.is_candidate));
+         }
+            */
          speculativeUpdate(seq_no, predictable, ((predictable && pred.speculate && req.is_candidate) ? ((pred.predicted_value == inst->D.value) ? 1 : 0) : 2),
                            inst->pc, inst->next_pc, (InstClass)inst->insn, inst->size, is_pair, piece,
                            (inst->A.valid ? inst->A.log_reg : 0xDEADBEEF),
@@ -405,13 +410,26 @@ void uarchsim_t::step(db_t *inst)
                            (inst->D.valid ? inst->D.log_reg : 0xDEADBEEF));
          // Override any predictor attempting to predict an instruction that is not candidate.
          pred.speculate &= req.is_candidate;
+         /*
+         if (inst->addr == 0){
+           printf("REQ CHECK FOR 0: %ld %ld\n", req.is_candidate, pred.speculate);
+         }
+           */
          predictable &= req.is_candidate;
       }
    }
    else {
       pred.speculate = false;
    }
- 
+   if (pred.speculate && predictable) {
+      num_predicted_total++;
+      if (inst->is_load) {
+         num_predicted_loads++;
+      }
+      else if (inst->is_store) {
+         num_predicted_stores++;
+      }
+   }
    exec_cycle = fetch_cycle + PIPELINE_FILL_LATENCY;
 
    if (inst->A.valid) {
@@ -472,13 +490,15 @@ void uarchsim_t::step(db_t *inst)
       uint64_t ADDR = inst->addr;
       if (addr_access_counts.find(ADDR) == addr_access_counts.end()){
         addr_access_counts[ADDR] = {0, 0, inst->pc};
+        printf("Storing address instruction: %ld\n", inst->addr);
       }
       if (inst->is_load){
         addr_access_counts[ADDR].loads++;
+        num_loads_kien++;
       }
       else {
         addr_access_counts[ADDR].stores++;
-        num_loads_kien++;
+        num_stores_kien++;
       }
    }
    else {
@@ -832,7 +852,13 @@ void uarchsim_t::output() {
    printf("Misclassified STP to STR (once, total): %ld\n", stat_short_store_pair_misclassify);
    printf("Misclassified STP to STR (multiple times, total): %ld\n", stat_long_store_pair_misclassify);
    printf("Misclassified STR to STP (once times, total): %ld\n", stat_misclassified_str_to_stp);
-   printf("total stores: %ld\n", num_loads_kien);
+   printf("PREDICTION COUNTS---------------------------------\n");
+   printf("Total instructions predicted: %ld\n", num_predicted_total);
+   printf("Load instructions predicted: %ld\n", num_predicted_loads);
+   printf("Store instructions predicted: %ld\n", num_predicted_stores);
+   printf("Other instructions predicted: %ld\n", num_predicted_total - num_predicted_loads - num_predicted_stores);
+   printf("total loads: %ld\n", num_loads_kien);
+   printf("total stores: %ld\n", num_stores_kien);
    FILE* addr_file = fopen("addrs.txt", "w");
    if (addr_file){
       for (const auto& entry : addr_access_counts){
@@ -855,10 +881,11 @@ void uarchsim_t::load_profile(const char* filename) {
         return;
     }
     
-    uint64_t addr, pc, loads, stores;
-    while (fscanf(f, "%lx %lx %ld %ld", &pc, &addr, &loads, &stores) == 4) {
-        addr_access_counts[addr] = {loads, stores, pc};
+    uint64_t addr_f, pc_f, loads_f, stores_f;
+    while (fscanf(f, "%lx %lx %ld %ld", &pc_f, &addr_f, &loads_f, &stores_f) == 4) {
+        addr_access_counts2[addr_f] = {loads_f, stores_f, pc_f};
+        //printf("%lx %lx %ld %ld\n", pc_f, addr_f, loads_f, stores_f);
     }
     fclose(f);
-    printf("Loaded %ld address profiles from %s\n", addr_access_counts.size(), filename);
+    printf("Loaded %ld address profiles from %s\n", addr_access_counts2.size(), filename);
 }

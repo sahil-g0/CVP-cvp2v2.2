@@ -63,8 +63,10 @@ class uarchsim_t {
         uint64_t stores;
         uint64_t pc;
       };
-      std::unordered_map<uint64_t, addr_access_info> addr_access_counts;
-
+      std::unordered_map<uint64_t, addr_access_info> addr_access_counts, addr_access_counts2;
+      uint64_t num_predicted_loads;
+      uint64_t num_predicted_stores;
+      uint64_t num_predicted_total;
       // register timestamps
       uint64_t RF[RFSIZE];
 
