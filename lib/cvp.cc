@@ -248,11 +248,24 @@ int parseargs(int argc, char ** argv) {
         i++;
         if (i < argc) {
             LOAD_STORE_RATIO_FILE = argv[i];
-            printf("KIEN READ LSFILE: %s\n", LOAD_STORE_RATIO_FILE);  // Print the filename to verify
-            i++;  // Then increment
+            //printf("KIEN READ LSFILE: %s\n", LOAD_STORE_RATIO_FILE);  // Print the filename to verify
+            i++;
         }
         else {
             printf("Usage: missing load/store ratio file: -lsfile <filename>.\n");
+            exit(0);
+        }
+     }
+     // Kien - Checks for command that sends alu file
+     else if (!strcmp(argv[i], "-alu")) {
+        i++;
+        if (i < argc) {
+            ALU_FILE = argv[i];
+            //printf("KIEN READ ALU: %s\n", LOAD_STORE_RATIO_FILE);  // Print the filename to verify
+            i++;
+        }
+        else {
+            printf("Usage: missing alu file: -alu <filename>.\n");
             exit(0);
         }
      }

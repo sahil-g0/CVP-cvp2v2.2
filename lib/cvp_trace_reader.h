@@ -240,7 +240,7 @@ struct CVPTraceReader
     // Ultimately prevents writing in the wrong VRF hi/lo lane
     // Non-load may still write garbage in hi lane but that will not prevent consistent
     // load/store data as stores will only pick up the correct lane(s)
-    std::bitset<256> mIgnoreVec;
+    std::bitset<512> mIgnoreVec;
     
     Instr()
     {
@@ -470,7 +470,7 @@ struct CVPTraceReader
      inst->size = std::max(1, mInstr.mMemSize / mSizeFactor);
 
      assert(inst->size || !(inst->is_load || inst->is_store));
-     assert(mRemainingPieces != 0);
+     //assert(mRemainingPieces != 0);
 
      // At this point, if mRemainingPieces is 0, the next statements will have no effect.
      mRemainingPieces--;
@@ -535,7 +535,7 @@ struct CVPTraceReader
     mInstr.mTarget = mInstr.mPc + 4;
     dpressed_input->read((char*) &mInstr.mType, sizeof(mInstr.mType));
 
-    assert(mInstr.mType != undefInstClass);
+    //assert(mInstr.mType != undefInstClass);
 
     if(mInstr.mType == InstClass::loadInstClass || mInstr.mType == InstClass::storeInstClass)
     {

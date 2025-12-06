@@ -68,3 +68,4 @@ uint64_t MAIN_MEMORY_LATENCY = 150;
 
 // Kien - Initialization for load store file
 char* LOAD_STORE_RATIO_FILE = NULL;
+char* ALU_FILE = NULL;

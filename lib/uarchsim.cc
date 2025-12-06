@@ -80,7 +80,10 @@ uarchsim_t::uarchsim_t():BP(20,16,20,16,64),window(WINDOW_SIZE),
 
    // Kien - Check for load store file
    if (LOAD_STORE_RATIO_FILE != NULL) {
-      load_profile(LOAD_STORE_RATIO_FILE);
+      load_profile(LOAD_STORE_RATIO_FILE, 1);
+   }
+   if (ALU_FILE != NULL){
+      load_profile(ALU_FILE, 2);
    }
 }
 
@@ -140,9 +143,19 @@ PredictionRequest uarchsim_t::get_prediction_req_for_track(uint64_t cycle, uint6
          uint64_t stores = addr_access_counts2[inst->addr].stores;
          
          // Don't predict if load/store ratio < 1
-         if (stores > 0 && (double)loads / (double)stores < 1.0) {
+         if (stores > 0 && (double)loads / (double)stores < 10.0) {
             req.is_candidate = 0;
-            printf("NO VP ON ADDRESS: %lx\n", inst->addr);
+            //printf("NO VP ON ADDRESS: %lx\n", inst->addr);
+         }
+      }
+   }
+   if (req.is_candidate && ALU_FILE != NULL) {
+      if (alu_pc_counts2.find(inst->pc) != alu_pc_counts2.end()) {
+         // Don't predict if pc count is > 1
+         //printf("KIEN DEBUG: %ld\n", alu_pc_counts2[inst->pc]);
+         if (alu_pc_counts2[inst->pc] > 50) {
+            req.is_candidate = 0;
+            //printf("NO VP ON ADDRESS: %lx\n", inst->addr);
          }
       }
    }
@@ -211,6 +224,15 @@ void uarchsim_t::step(db_t *inst)
    uint64_t i;
    uint64_t addr;
    uint64_t exec_cycle;
+
+   // Kien - NEW: keep track of ALU accesses by PC value
+   if (inst->insn == InstClass::aluInstClass){
+      uint64_t PC = inst->pc;
+      if (alu_pc_counts.find(PC) == alu_pc_counts.end()){
+        alu_pc_counts[PC] = 0;
+      }
+      alu_pc_counts[PC]++;
+    }
 
    if (FETCH_MODEL_ICACHE)
       fetch_cycle = IC.access(fetch_cycle, true, inst->pc);   // Note: I-cache hit latency is "0" (above), so fetch cycle doesn't increase on hits.
@@ -396,12 +418,10 @@ void uarchsim_t::step(db_t *inst)
       else
       {
          PredictionRequest req = get_prediction_req_for_track(fetch_cycle, seq_no, piece, inst);
-         pred = getPrediction(req);\
-         /*
-         if (inst->addr == 0){
-            printf("Eligible: %ld\n",(predictable && pred.speculate && req.is_candidate));
-         }
-            */
+         pred = getPrediction(req);
+        //  if (inst->addr == 0){
+        //     printf("Eligible: %ld\n",(predictable && pred.speculate && req.is_candidate));
+        //  }
          speculativeUpdate(seq_no, predictable, ((predictable && pred.speculate && req.is_candidate) ? ((pred.predicted_value == inst->D.value) ? 1 : 0) : 2),
                            inst->pc, inst->next_pc, (InstClass)inst->insn, inst->size, is_pair, piece,
                            (inst->A.valid ? inst->A.log_reg : 0xDEADBEEF),
@@ -422,6 +442,7 @@ void uarchsim_t::step(db_t *inst)
       pred.speculate = false;
    }
    if (pred.speculate && predictable) {
+    //printf("prediction type: %d\n",(InstClass)inst->insn);
       num_predicted_total++;
       if (inst->is_load) {
          num_predicted_loads++;
@@ -490,7 +511,7 @@ void uarchsim_t::step(db_t *inst)
       uint64_t ADDR = inst->addr;
       if (addr_access_counts.find(ADDR) == addr_access_counts.end()){
         addr_access_counts[ADDR] = {0, 0, inst->pc};
-        printf("Storing address instruction: %ld\n", inst->addr);
+        //printf("Storing address instruction: %ld\n", inst->addr);
       }
       if (inst->is_load){
         addr_access_counts[ADDR].loads++;
@@ -847,13 +868,14 @@ void uarchsim_t::output() {
    printf("prediction-eligible instructions = %ld\n", num_eligible);
    printf("correct predictions              = %ld (%.2f%%)\n", num_correct, (100.0*(double)num_correct/(double)num_eligible));
    printf("incorrect predictions            = %ld (%.2f%%)\n", num_incorrect, (100.0*(double)num_incorrect/(double)num_eligible));
+   printf("total instructions predicted     = %ld\n", num_predicted_total);
+   printf("correct/incorrect ratio          = %.4f%%\n", 100*(double)num_correct/((double)num_correct+(double)num_incorrect));
    printf("Other------------------------------------------\n");
    printf("Misclassified LDP to LD + BU: %ld\n", stat_misclassified_ldp);
    printf("Misclassified STP to STR (once, total): %ld\n", stat_short_store_pair_misclassify);
    printf("Misclassified STP to STR (multiple times, total): %ld\n", stat_long_store_pair_misclassify);
    printf("Misclassified STR to STP (once times, total): %ld\n", stat_misclassified_str_to_stp);
    printf("PREDICTION COUNTS---------------------------------\n");
-   printf("Total instructions predicted: %ld\n", num_predicted_total);
    printf("Load instructions predicted: %ld\n", num_predicted_loads);
    printf("Store instructions predicted: %ld\n", num_predicted_stores);
    printf("Other instructions predicted: %ld\n", num_predicted_total - num_predicted_loads - num_predicted_stores);
@@ -870,22 +892,39 @@ void uarchsim_t::output() {
       }
       fclose(addr_file);
    }
+   FILE* alu_file = fopen("alu_pc.txt", "w");
+   if (alu_file) {
+      for (const auto& entry : alu_pc_counts) {
+        fprintf(alu_file, "%lx %ld\n", entry.first, entry.second);
+        //fprintf(alu_file, "%lx \n", entry.first);
+      }
+      fclose(alu_file);
+    }
  
 }
 
 // Kien - Loading the load store file
-void uarchsim_t::load_profile(const char* filename) {
+void uarchsim_t::load_profile(const char* filename, uint8_t heuristic) {
     FILE* f = fopen(filename, "r");
     if (!f) {
         printf("Warning: Could not open load store file %s\n", filename);
         return;
     }
     
-    uint64_t addr_f, pc_f, loads_f, stores_f;
-    while (fscanf(f, "%lx %lx %ld %ld", &pc_f, &addr_f, &loads_f, &stores_f) == 4) {
-        addr_access_counts2[addr_f] = {loads_f, stores_f, pc_f};
-        //printf("%lx %lx %ld %ld\n", pc_f, addr_f, loads_f, stores_f);
+    if (heuristic == 1){
+        uint64_t addr_f, pc_f, loads_f, stores_f;
+        while (fscanf(f, "%lx %lx %ld %ld", &pc_f, &addr_f, &loads_f, &stores_f) == 4) {
+            addr_access_counts2[addr_f] = {loads_f, stores_f, pc_f};
+            //printf("%lx %lx %ld %ld\n", pc_f, addr_f, loads_f, stores_f);
+        }
+    }
+    else if (heuristic == 2){
+        uint64_t pc_f, alu_count;
+        while (fscanf(f, "%lx %ld", &pc_f, &alu_count) == 2) {
+            alu_pc_counts2[pc_f] = alu_count;
+            //printf("%lx %ld\n", pc_f, alu_count);
+        }
     }
     fclose(f);
-    printf("Loaded %ld address profiles from %s\n", addr_access_counts2.size(), filename);
+    //printf("Loaded %ld address profiles from %s\n", addr_access_counts2.size(), filename);
 }
