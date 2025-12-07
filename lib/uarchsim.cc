@@ -143,7 +143,7 @@ PredictionRequest uarchsim_t::get_prediction_req_for_track(uint64_t cycle, uint6
          uint64_t stores = addr_access_counts2[inst->addr].stores;
          
          // Don't predict if load/store ratio < 1
-         if (stores > 0 && (double)loads / (double)stores < 10.0) {
+         if (stores > 0 && (double)loads / (double)stores < 2.5) {
             req.is_candidate = 0;
             //printf("NO VP ON ADDRESS: %lx\n", inst->addr);
          }
@@ -153,7 +153,7 @@ PredictionRequest uarchsim_t::get_prediction_req_for_track(uint64_t cycle, uint6
       if (alu_pc_counts2.find(inst->pc) != alu_pc_counts2.end()) {
          // Don't predict if pc count is > 1
          //printf("KIEN DEBUG: %ld\n", alu_pc_counts2[inst->pc]);
-         if (alu_pc_counts2[inst->pc] > 50) {
+         if (alu_pc_counts2[inst->pc] > 10000) {
             req.is_candidate = 0;
             //printf("NO VP ON ADDRESS: %lx\n", inst->addr);
          }

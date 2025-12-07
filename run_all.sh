@@ -1,28 +1,29 @@
 #!/bin/bash
 
-OUTDIR="results"
+OUTDIR="results/alu/int"
 
 # Predictor binaries and corresponding threshold names
 BINS=(
-  cvp_ls_0half
-  cvp_ls_1
-  cvp_ls_2
-  cvp_ls_5
-  cvp_ls_7
-  cvp_ls_10
+  cvp_alu_50
+  cvp_alu_100
+  cvp_alu_500
+  cvp_alu_1000
+  cvp_alu_5000
+  cvp_alu_10000
 )
 
 THRESHOLDS=(
-  0half
-  1
-  2
-  5
-  7
-  10
+  50
+  100
+  500
+  1000
+  5000
+  10000
 )
 
 # Traces to evaluate
 TRACES=(
+  int_0_trace.gz
   int_1_trace.gz
   int_6_trace.gz
   int_8_trace.gz
@@ -41,18 +42,18 @@ for trace in "${TRACES[@]}"; do
   num=$(echo "$trace" | grep -oP '(?<=int_)\d+(?=_trace)')
 
   # Matching addr file
-  addr_file="addrs_ls_${num}.txt"
+  addr_file="alu_pc_int_${num}.txt"
 
   for i in "${!BINS[@]}"; do
     bin="${BINS[$i]}"
     thr="${THRESHOLDS[$i]}"
 
-    outfile="$OUTDIR/int_${num}_trace_ls_${thr}.txt"
+    outfile="$OUTDIR/int_${num}_trace_alu_${thr}.txt"
 
     echo "Running $bin with $addr_file on $trace → $outfile"
 
-    "./$bin" -v -lsfile "$addr_file" "$trace" > "$outfile"
+    "./$bin" -v -alu "$addr_file" "$trace" > "$outfile"
   done
 done
-
+# chmod +x run_all.sh
 echo "All runs complete."
