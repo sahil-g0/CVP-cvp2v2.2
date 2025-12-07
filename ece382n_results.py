@@ -8,8 +8,8 @@ import numpy as np
 df = pd.read_excel("ece382n_results.xlsx")
 
 # Identify columns
-ls_cols = ["ls_half", "ls_1", "ls_2", "ls_5", "ls_7", "ls_10"]
-alu_cols = ["alu_50", "alu_100", "alu_500", "alu_1000", "alu_5000", "alu_10000"]
+ls_cols = ["ls_half", "ls_1", "ls_2", "ls_5", "ls_7", "ls_10", "ls_15", "ls_25", "ls_50"]
+alu_cols = ["alu_5", "alu_10", "alu_25", "alu_50", "alu_100", "alu_500", "alu_1000", "alu_5000", "alu_10000"]
 
 trace_names = df["trace"]
 baseline = df["baseline"]
